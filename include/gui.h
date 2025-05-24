@@ -26,7 +26,7 @@ typedef struct {
     float corner_radius;
     float window_padding; // Margin around the window
     float button_padding; // Padding inside buttons
-    float textbox_padding; // Padding inside textboxes
+    float textbox_padding;// Padding inside textboxes
 } AafGuiTheme;
 
 typedef struct {
@@ -34,7 +34,7 @@ typedef struct {
     size_t element_count;
     float font_size;
     void *font;
-    AafGuiElement *focus; // TODO: Focus for text input etc. when implemented
+    AafGuiElement *focus;// TODO: Focus for text input etc. when implemented
     AafGuiTheme theme;
     AafGuiLayoutMode layout_mode;
 } AafGuiContext;
@@ -46,10 +46,13 @@ AafGuiElement *aaf_gui_button(AafGuiContext *ctx, const char *text, int x, int y
 AafGuiElement *aaf_gui_text_input(AafGuiContext *ctx, const char *text, bool multiline, int x, int y, float w, float h);
 
 AafGuiTheme aaf_gui_theme_default();
+AafGuiContext aaf_gui_context_create();
 void aaf_gui_set_font(AafGuiContext *ctx, const char *path, int size);
 
 void draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self);
 void draw_gui_button(AafGuiContext *ctx, AafGuiElement *self);
 void draw_gui_label(AafGuiContext *ctx, AafGuiElement *self);
 
-#endif //GUI_H
+void update_gui_text_input(AafGuiContext *ctx);
+
+#endif//GUI_H

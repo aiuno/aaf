@@ -21,20 +21,7 @@ void aaf_init(AafContext *ctx, int argc, char *argv[]) {
 
     ctx->should_close = false;
 
-    ctx->gui_context = (AafGuiContext){0};
-    ctx->gui_context.elements = (AafGuiElement *) malloc(sizeof(AafGuiElement) * 100);
-    if (ctx->gui_context.elements == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for GUI elements\n");
-        return;
-    }
-    ctx->gui_context.theme = aaf_gui_theme_default();
-
-    ctx->gui_context.font = malloc(sizeof(Font));
-    Font font = GetFontDefault();
-    ctx->gui_context.font_size = 20;
-    memcpy(ctx->gui_context.font, &font, sizeof(Font));
-    ctx->gui_context.element_count = 0;
-    ctx->gui_context.layout_mode = AAF_GUI_LAYOUT_COLUMNAR;
+    ctx->gui_context = aaf_gui_context_create();
 
     printf("AAF context initialized successfully.\n");
 }
@@ -60,23 +47,23 @@ void draw_gui_elements(AafContext *ctx) {
     }
 }
 
-void update_gui_elements(AafContext *ctx) {
+void update_gui_elements(AafGuiContext *ctx) {
     if (ctx == NULL) {
         return;
     }
 
     // check for mouse events and update element events
     Vector2 mouse_pos = GetMousePosition();
-    for (size_t i = 0; i < ctx->gui_context.element_count; ++i) {
-        AafGuiElement *element = &ctx->gui_context.elements[i];
+    for (size_t i = 0; i < ctx->element_count; ++i) {
+        AafGuiElement *element = &ctx->elements[i];
         if (element->type == GUI_BUTTON) {
             // recalculate the as_button rectangle
             // and check for mouse collision
-            Vector2 text_size = MeasureTextEx(*(Font*)ctx->gui_context.font, element->as_button.text, ctx->gui_context.font_size, 1);
-            element->w = text_size.x + ctx->gui_context.theme.button_padding * 2;
-            element->h = text_size.y + ctx->gui_context.theme.button_padding * 2;
+            Vector2 text_size = MeasureTextEx(*(Font *) ctx->font, element->as_button.text, ctx->font_size, 1);
+            element->w = text_size.x + ctx->theme.button_padding * 2;
+            element->h = text_size.y + ctx->theme.button_padding * 2;
 
-            if (CheckCollisionPointRec(mouse_pos, (Rectangle){element->x, element->y, element->w, element->h})) {
+            if (CheckCollisionPointRec(mouse_pos, (Rectangle) {element->x, element->y, element->w, element->h})) {
                 element->event |= AAF_GUI_EVENT_HOVER;
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                     element->event |= AAF_GUI_EVENT_CLICK;
@@ -85,21 +72,21 @@ void update_gui_elements(AafContext *ctx) {
         } else if (element->type == GUI_TEXT_INPUT) {
             // recalculate the as_label rectangle
             // and check for mouse collision
-            Vector2 text_size = MeasureTextEx(*(Font*)ctx->gui_context.font, element->as_label.text, ctx->gui_context.font_size, 1);
-            element->w = text_size.x + ctx->gui_context.theme.textbox_padding * 2;
-            element->h = text_size.y + ctx->gui_context.theme.textbox_padding * 2;
+            Vector2 text_size = MeasureTextEx(*(Font *) ctx->font, element->as_label.text, ctx->font_size, 1);
+            element->w = text_size.x + ctx->theme.textbox_padding * 2;
+            element->h = text_size.y + ctx->theme.textbox_padding * 2;
 
-            if (CheckCollisionPointRec(mouse_pos, (Rectangle){element->x, element->y, element->w, element->h})) {
+            if (CheckCollisionPointRec(mouse_pos, (Rectangle) {element->x, element->y, element->w, element->h})) {
                 element->event |= AAF_GUI_EVENT_HOVER;
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                     element->event |= AAF_GUI_EVENT_CLICK;
-                    ctx->gui_context.focus = element;
+                    ctx->focus = element;
                 }
             } else {
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                     // if the mouse is clicked outside the element, remove focus
-                    if (ctx->gui_context.focus == element) {
-                        ctx->gui_context.focus = NULL;
+                    if (ctx->focus == element) {
+                        ctx->focus = NULL;
                     }
                 }
             }
@@ -107,70 +94,12 @@ void update_gui_elements(AafContext *ctx) {
     }
 
     // check for keyboard events
-    if (ctx->gui_context.focus != NULL) {
-        if (ctx->gui_context.focus->type != GUI_TEXT_INPUT) {
-            return; // TODO: Handle focus for other types, where applicable
+    if (ctx->focus != NULL) {
+        if (ctx->focus->type != GUI_TEXT_INPUT) {
+            return;// TODO: Handle focus for other types, where applicable
         }
 
-        if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
-            // get the utf-8 character length of the last character
-            size_t len = strlen(ctx->gui_context.focus->as_text_input.buffer);
-            for (size_t i = len - 1; 1; --i) {
-                if ((ctx->gui_context.focus->as_text_input.buffer[i] & 0xc0) != 0x80) {
-                    // found the start of the last character
-                    ctx->gui_context.focus->as_text_input.buffer[i] = '\0';
-                    break;
-                }
-            }
-        } else if (IsKeyPressed(KEY_ENTER) || IsKeyPressedRepeat(KEY_ENTER)) {
-            // submit the text input
-            if (ctx->gui_context.focus->as_text_input.multiline) {
-                // add a newline character
-                size_t len = strlen(ctx->gui_context.focus->as_text_input.buffer);
-                size_t new_size = len + 2; // 2 bytes for newline
-                if (new_size > sizeof(ctx->gui_context.focus->as_text_input.buffer)) {
-                    ctx->gui_context.focus->as_text_input.buffer = realloc(ctx->gui_context.focus->as_text_input.buffer, new_size);
-                }
-                ctx->gui_context.focus->as_text_input.buffer[len] = '\n';
-                ctx->gui_context.focus->as_text_input.buffer[len + 1] = '\0';
-            } else {
-                ctx->gui_context.focus->event |= AAF_GUI_EVENT_SUBMIT;
-            }
-        }  else if (IsKeyPressed(KEY_LEFT) || IsKeyPressedRepeat(KEY_LEFT)) {
-            // move the cursor left
-            if (ctx->gui_context.focus->as_text_input.cursor_pos > 0) {
-                ctx->gui_context.focus->as_text_input.cursor_pos--;
-            }
-        } else if (IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT)) {
-            // move the cursor right
-            if (ctx->gui_context.focus->as_text_input.cursor_pos < strlen(ctx->gui_context.focus->as_text_input.buffer)) {
-                ctx->gui_context.focus->as_text_input.cursor_pos++;
-            }
-        } else {
-            // add the character to the text input
-            int key;
-            while ((key = GetCharPressed()) != 0) {
-                size_t len = strlen(ctx->gui_context.focus->as_text_input.buffer);
-                size_t new_size = len + 4; // 4 bytes for UTF-8 encoding
-                if (new_size > sizeof(ctx->gui_context.focus->as_text_input.buffer)) {
-                    ctx->gui_context.focus->as_text_input.buffer = realloc(ctx->gui_context.focus->as_text_input.buffer, new_size);
-                }
-                // Encode the character to UTF-8
-                if (key < 0x80) {
-                    ctx->gui_context.focus->as_text_input.buffer[len] = (char)key;
-                } else if (key < 0x800) {
-                    ctx->gui_context.focus->as_text_input.buffer[len] = (char)(0xc0 | ((key >> 6) & 0x1f));
-                    ctx->gui_context.focus->as_text_input.buffer[len + 1] = (char)(0x80 | (key & 0x3f));
-                    len++;
-                } else {
-                    ctx->gui_context.focus->as_text_input.buffer[len] = (char)(0xe0 | ((key >> 12) & 0x0f));
-                    ctx->gui_context.focus->as_text_input.buffer[len + 1] = (char)(0x80 | ((key >> 6) & 0x3f));
-                    ctx->gui_context.focus->as_text_input.buffer[len + 2] = (char)(0x80 | (key & 0x3f));
-                    len += 2;
-                }
-                ctx->gui_context.focus->as_text_input.buffer[len + 1] = '\0';
-            }
-        }
+        update_gui_text_input(ctx);
     }
 }
 
@@ -185,7 +114,7 @@ void reset_gui_elements(AafContext *ctx) {
     }
 }
 
-void calculate_layout(AafContext *ctx) { // TODO: Make more smarter
+void calculate_layout(AafContext *ctx) {// TODO: Make more smarter
     for (size_t i = 0; i < ctx->gui_context.element_count; ++i) {
         AafGuiElement *prev_element = (i > 0) ? &ctx->gui_context.elements[i - 1] : NULL;
         AafGuiElement *element = &ctx->gui_context.elements[i];
@@ -214,7 +143,7 @@ void aaf_begin(AafContext *ctx) {
         return;
     }
 
-    update_gui_elements(ctx);
+    update_gui_elements(&ctx->gui_context);
     calculate_layout(ctx);
 
     BeginDrawing();

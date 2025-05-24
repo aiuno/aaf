@@ -11,7 +11,7 @@ AafGuiElement *aaf_gui_label(AafGuiContext *ctx, const char *text, int x, int y)
         return NULL;
     }
 
-    Vector2 wh = MeasureTextEx(*(Font*)ctx->font, text, ctx->font_size, 1);
+    Vector2 wh = MeasureTextEx(*(Font *) ctx->font, text, ctx->font_size, 1);
 
     AafGuiLabel label = {text};
     AafGuiElement element = {GUI_LABEL, .as_label = label, .w = wh.x, .h = wh.y};
@@ -31,5 +31,5 @@ void draw_gui_label(AafGuiContext *ctx, AafGuiElement *self) {
 
     const char *text = self->as_label.text;
 
-    DrawTextEx(*(Font*)ctx->font, text, (Vector2){self->x, self->y}, 20, 1, *(Color*)ctx->theme.text_color);
+    DrawTextEx(*(Font *) ctx->font, text, (Vector2) {self->x, self->y}, 20, 1, *(Color *) ctx->theme.text_color);
 }

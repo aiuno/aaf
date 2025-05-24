@@ -5,8 +5,8 @@
 #ifndef GUI_ELEMENT_H
 #define GUI_ELEMENT_H
 
-#include "gui_label.h"
 #include "gui_button.h"
+#include "gui_label.h"
 #include "gui_text_input.h"
 
 typedef enum {
@@ -32,4 +32,4 @@ typedef struct {
     };
 } AafGuiElement;
 
-#endif //GUI_ELEMENT_H
+#endif//GUI_ELEMENT_H

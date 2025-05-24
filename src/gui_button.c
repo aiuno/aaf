@@ -12,7 +12,7 @@ AafGuiElement *aaf_gui_button(AafGuiContext *ctx, const char *text, int x, int y
         return NULL;
     }
 
-    Vector2 wh = MeasureTextEx(*(Font*)ctx->font, text, 20, 1);
+    Vector2 wh = MeasureTextEx(*(Font *) ctx->font, text, 20, 1);
 
     AafGuiButton button = {text};
     AafGuiElement element = {GUI_BUTTON, .as_button = button, .w = wh.x + ctx->theme.button_padding * 2, .h = wh.y + ctx->theme.button_padding * 2};
@@ -33,23 +33,23 @@ void draw_gui_button(AafGuiContext *ctx, AafGuiElement *self) {
 
     const char *text = self->as_button.text;
     Rectangle self_rect = {
-        .x = self->x,
-        .y = self->y,
-        .width = self->w,
-        .height = self->h,
+            .x = self->x,
+            .y = self->y,
+            .width = self->w,
+            .height = self->h,
     };
 
     float roundness = ctx->theme.corner_radius / fminf(self->w, self->h);
 
     if (self->event & AAF_GUI_EVENT_HOVER) {
         if (self->event & AAF_GUI_EVENT_CLICK) {
-            DrawRectangleRounded(self_rect, roundness, 20, *(Color*)ctx->theme.button_pressed_color);
+            DrawRectangleRounded(self_rect, roundness, 20, *(Color *) ctx->theme.button_pressed_color);
         } else {
-            DrawRectangleRounded(self_rect, roundness, 20, *(Color*)ctx->theme.button_hover_color);
+            DrawRectangleRounded(self_rect, roundness, 20, *(Color *) ctx->theme.button_hover_color);
         }
     } else {
-        DrawRectangleRounded(self_rect, roundness, 20, *(Color*)ctx->theme.button_color);
+        DrawRectangleRounded(self_rect, roundness, 20, *(Color *) ctx->theme.button_color);
     }
-    DrawRectangleRoundedLinesEx(self_rect, roundness, 20, 2, *(Color*)ctx->theme.button_pressed_color);
-    DrawTextEx(*(Font*)ctx->font, text, (Vector2){self->x + ctx->theme.button_padding, self->y + ctx->theme.button_padding}, 20, 1, *(Color*)ctx->theme.text_color);
+    DrawRectangleRoundedLinesEx(self_rect, roundness, 20, 2, *(Color *) ctx->theme.button_pressed_color);
+    DrawTextEx(*(Font *) ctx->font, text, (Vector2) {self->x + ctx->theme.button_padding, self->y + ctx->theme.button_padding}, 20, 1, *(Color *) ctx->theme.text_color);
 }

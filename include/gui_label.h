@@ -9,4 +9,4 @@ typedef struct {
     const char *text;
 } AafGuiLabel;
 
-#endif //GUI_LABEL_H
+#endif//GUI_LABEL_H

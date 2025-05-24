@@ -9,4 +9,4 @@ typedef struct {
     const char *text;
 } AafGuiButton;
 
-#endif //GUI_BUTTON_HPP
+#endif//GUI_BUTTON_HPP
