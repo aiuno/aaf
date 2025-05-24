@@ -11,6 +11,7 @@ typedef struct {
     char *buffer;
     size_t buffer_size;
     size_t cursor_pos;
+    float cursor_anim_step;
     bool multiline;
 } AafGuiTextInput;
 

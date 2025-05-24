@@ -69,3 +69,26 @@ AafGuiContext aaf_gui_context_create() {
 
     return ctx;
 }
+
+void aaf_calculate_layout(AafGuiContext *ctx) {// TODO: Make more smarter
+    for (size_t i = 0; i < ctx->element_count; ++i) {
+        AafGuiElement *prev_element = (i > 0) ? &ctx->elements[i - 1] : NULL;
+        AafGuiElement *element = &ctx->elements[i];
+
+        if (prev_element != NULL) {
+            if (ctx->layout_mode == AAF_GUI_LAYOUT_COLUMNAR) {
+                element->x = prev_element->x;
+                element->y = prev_element->y + prev_element->h + ctx->theme.window_padding;
+            } else if (ctx->layout_mode == AAF_GUI_LAYOUT_ROW) {
+                element->x = prev_element->x + prev_element->w + ctx->theme.window_padding;
+                element->y = prev_element->y;
+            } else {
+                element->x = ctx->theme.window_padding;
+                element->y = ctx->theme.window_padding;
+            }
+        } else {
+            element->x = ctx->theme.window_padding;
+            element->y = ctx->theme.window_padding;
+        }
+    }
+}

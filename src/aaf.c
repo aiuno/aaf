@@ -19,6 +19,9 @@ void aaf_init(AafContext *ctx, int argc, char *argv[]) {
     SetExitKey(0);
     SetWindowPosition(100, 100);
 
+    ctx->accumulator = 0.0;
+    ctx->update_rate = 1.0 / 60.0; // 60 FPS update rate
+
     ctx->should_close = false;
 
     ctx->gui_context = aaf_gui_context_create();
@@ -38,11 +41,11 @@ void draw_gui_elements(AafContext *ctx) {
     for (size_t i = 0; i < ctx->gui_context.element_count; ++i) {
         AafGuiElement *element = &ctx->gui_context.elements[i];
         if (element->type == GUI_LABEL) {
-            draw_gui_label(&ctx->gui_context, element);
+            aaf_draw_gui_label(&ctx->gui_context, element);
         } else if (element->type == GUI_BUTTON) {
-            draw_gui_button(&ctx->gui_context, element);
+            aaf_draw_gui_button(&ctx->gui_context, element);
         } else if (element->type == GUI_TEXT_INPUT) {
-            draw_gui_text_input(&ctx->gui_context, element);
+            aaf_draw_gui_text_input(&ctx->gui_context, element);
         }
     }
 }
@@ -99,7 +102,7 @@ void update_gui_elements(AafGuiContext *ctx) {
             return;// TODO: Handle focus for other types, where applicable
         }
 
-        update_gui_text_input(ctx);
+        aaf_update_gui_text_input(ctx, ctx->focus);
     }
 }
 
@@ -114,37 +117,23 @@ void reset_gui_elements(AafContext *ctx) {
     }
 }
 
-void calculate_layout(AafContext *ctx) {// TODO: Make more smarter
-    for (size_t i = 0; i < ctx->gui_context.element_count; ++i) {
-        AafGuiElement *prev_element = (i > 0) ? &ctx->gui_context.elements[i - 1] : NULL;
-        AafGuiElement *element = &ctx->gui_context.elements[i];
-
-        if (prev_element != NULL) {
-            if (ctx->gui_context.layout_mode == AAF_GUI_LAYOUT_COLUMNAR) {
-                element->x = prev_element->x;
-                element->y = prev_element->y + prev_element->h + ctx->gui_context.theme.window_padding;
-            } else if (ctx->gui_context.layout_mode == AAF_GUI_LAYOUT_ROW) {
-                element->x = prev_element->x + prev_element->w + ctx->gui_context.theme.window_padding;
-                element->y = prev_element->y;
-            } else {
-                element->x = ctx->gui_context.theme.window_padding;
-                element->y = ctx->gui_context.theme.window_padding;
-            }
-        } else {
-            element->x = ctx->gui_context.theme.window_padding;
-            element->y = ctx->gui_context.theme.window_padding;
-        }
-    }
-}
-
 void aaf_begin(AafContext *ctx) {
     if (ctx == NULL) {
         fprintf(stderr, "Error: AafContext is NULL\n");
         return;
     }
 
-    update_gui_elements(&ctx->gui_context);
-    calculate_layout(ctx);
+    if (IsWindowResized()) {
+        // Recalculate layout on window resize
+        aaf_calculate_layout(ctx);
+    }
+    ctx->accumulator += GetFrameTime();
+
+    if (ctx->accumulator >= ctx->update_rate) {
+        ctx->accumulator -= ctx->update_rate;
+        // Update GUI elements
+        update_gui_elements(&ctx->gui_context);
+    }
 
     BeginDrawing();
     ClearBackground(RAYWHITE);

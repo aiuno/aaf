@@ -23,10 +23,12 @@ AafGuiElement *aaf_gui_button(AafGuiContext *ctx, const char *text, int x, int y
     *new_element = element;
     ctx->element_count += 1;
 
+    aaf_calculate_layout(ctx);
+
     return new_element;
 }
 
-void draw_gui_button(AafGuiContext *ctx, AafGuiElement *self) {
+void aaf_draw_gui_button(AafGuiContext *ctx, AafGuiElement *self) {
     if (self == NULL) {
         return;
     }

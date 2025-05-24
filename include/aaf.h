@@ -8,6 +8,9 @@
 typedef struct {
     bool should_close;
     AafGuiContext gui_context;
+
+    double accumulator;
+    double update_rate;
 } AafContext;
 
 void aaf_init(AafContext *ctx, int argc, char *argv[]);

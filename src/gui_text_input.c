@@ -31,6 +31,8 @@ AafGuiElement *aaf_gui_text_input(AafGuiContext *ctx, const char *text, bool mul
     *new_element = element;
     ctx->element_count += 1;
 
+    aaf_calculate_layout(ctx);
+
     return new_element;
 }
 
@@ -61,7 +63,7 @@ Vector2 calculate_cursor_pos(AafGuiContext *ctx, AafGuiElement *self) {
     return cursor_pos;
 }
 
-void draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
+void aaf_draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
     if (self == NULL) {
         return;
     }
@@ -86,49 +88,71 @@ void draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
     }
     DrawTextEx(*(Font *) ctx->font, text, (Vector2) {self->x + ctx->theme.textbox_padding, self->y + ctx->theme.textbox_padding}, 20, 1, *(Color *) ctx->theme.text_color);
 
-    DrawLineEx(cursor_pos, (Vector2){cursor_pos.x, cursor_pos.y + 20}, 2.0f, *(Color *) ctx->theme.text_color); // Draw cursor line
+    if (self == ctx->focus) {
+        Color cursor_color = (Color) {
+                (*(Color *) ctx->theme.text_color).r,
+                (*(Color *) ctx->theme.text_color).g,
+                (*(Color *) ctx->theme.text_color).b,
+                self->as_text_input.cursor_anim_step > 0.5f ? 255 : 0 // Blink effect
+        };
+        DrawLineEx(cursor_pos, (Vector2){cursor_pos.x, cursor_pos.y + 20}, 2.0f, cursor_color); // Draw cursor line
+    }
 }
 
-void update_gui_text_input(AafGuiContext *ctx) {
+void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
+    if (self == NULL || self->type != GUI_TEXT_INPUT) {
+        return;
+    }
+
+    if (self != ctx->focus) {
+        return; // Only update if this element is focused
+    }
+
+    // Update cursor animation step for blinking effect
+    self->as_text_input.cursor_anim_step += GetFrameTime();
+    if (self->as_text_input.cursor_anim_step >= 1.0f) {
+        self->as_text_input.cursor_anim_step = 0.0f; // Reset animation step
+    }
+
     if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
         // get the utf-8 character length of the last character
-        size_t cpos = ctx->focus->as_text_input.cursor_pos;
+        size_t cpos = self->as_text_input.cursor_pos;
         for (size_t i = cpos - 1; 1; --i) {
-            if ((ctx->focus->as_text_input.buffer[i] & 0xc0) != 0x80) {
+            if ((self->as_text_input.buffer[i] & 0xc0) != 0x80) {
                 // found the start of the last character
-                ctx->focus->as_text_input.buffer[i] = '\0';
-                ctx->focus->as_text_input.cursor_pos = i;
+                self->as_text_input.buffer[i] = '\0';
+                self->as_text_input.cursor_pos = i;
                 break;
             }
         }
     } else if (IsKeyPressed(KEY_ENTER) || IsKeyPressedRepeat(KEY_ENTER)) {
         // submit the text input
-        if (ctx->focus->as_text_input.multiline) {
-            if (ctx->focus->as_text_input.cursor_pos >= ctx->focus->as_text_input.buffer_size - 1) {
+        if (self->as_text_input.multiline) {
+            if (self->as_text_input.cursor_pos >= self->as_text_input.buffer_size - 1) {
                 // Reallocate buffer if needed
-                ctx->focus->as_text_input.buffer = realloc(ctx->focus->as_text_input.buffer, ctx->focus->as_text_input.buffer_size + 128);
-                ctx->focus->as_text_input.buffer_size += 128;
+                self->as_text_input.buffer = realloc(self->as_text_input.buffer, self->as_text_input.buffer_size + 128);
+                self->as_text_input.buffer_size += 128;
             }
-            ctx->focus->as_text_input.buffer[ctx->focus->as_text_input.cursor_pos] = '\n';
-            ctx->focus->as_text_input.cursor_pos++;
-            ctx->focus->as_text_input.buffer[ctx->focus->as_text_input.cursor_pos] = '\0';
+            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\n';
+            self->as_text_input.cursor_pos++;
+            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\0';
         }
     } else if (IsKeyPressed(KEY_LEFT) || IsKeyPressedRepeat(KEY_LEFT)) {
         // move the cursor left
-        if (ctx->focus->as_text_input.cursor_pos > 0) {
-            ctx->focus->as_text_input.cursor_pos--;
+        if (self->as_text_input.cursor_pos > 0) {
+            self->as_text_input.cursor_pos--;
         }
     } else if (IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT)) {
         // move the cursor right
-        if (ctx->focus->as_text_input.cursor_pos < strlen(ctx->focus->as_text_input.buffer)) {
-            ctx->focus->as_text_input.cursor_pos++;
+        if (self->as_text_input.cursor_pos < strlen(self->as_text_input.buffer)) {
+            self->as_text_input.cursor_pos++;
         }
     } else {
         // add the character to the text input
         int key;
         while ((key = GetCharPressed()) != 0) {
             char utf8_char[5] = {0}; // Buffer for UTF-8 character
-            size_t len = ctx->focus->as_text_input.buffer_size;
+            size_t len = self->as_text_input.buffer_size;
             // Encode the character to UTF-8
             if (key < 0x80) {
                 utf8_char[0] = (char) key;
@@ -142,18 +166,18 @@ void update_gui_text_input(AafGuiContext *ctx) {
                 utf8_char[2] = (char) (0x80 | (key & 0x3f));
                 len += 3;
             }
-            if (len >= ctx->focus->as_text_input.buffer_size) {
+            if (len >= self->as_text_input.buffer_size) {
                 // Reallocate buffer if needed
-                ctx->focus->as_text_input.buffer = realloc(ctx->focus->as_text_input.buffer, len + 128);
-                ctx->focus->as_text_input.buffer_size += 128;
+                self->as_text_input.buffer = realloc(self->as_text_input.buffer, len + 128);
+                self->as_text_input.buffer_size += 128;
             }
             // Insert the character at the cursor position
-            size_t cursor_pos = ctx->focus->as_text_input.cursor_pos;
-            memmove(ctx->focus->as_text_input.buffer + cursor_pos + strlen(utf8_char), ctx->focus->as_text_input.buffer + cursor_pos, strlen(ctx->focus->as_text_input.buffer) - cursor_pos + 1);
-            memcpy(ctx->focus->as_text_input.buffer + cursor_pos, utf8_char, strlen(utf8_char));
-            ctx->focus->as_text_input.cursor_pos += strlen(utf8_char);
+            size_t cursor_pos = self->as_text_input.cursor_pos;
+            memmove(self->as_text_input.buffer + cursor_pos + strlen(utf8_char), self->as_text_input.buffer + cursor_pos, strlen(self->as_text_input.buffer) - cursor_pos + 1);
+            memcpy(self->as_text_input.buffer + cursor_pos, utf8_char, strlen(utf8_char));
+            self->as_text_input.cursor_pos += strlen(utf8_char);
             // Ensure the buffer is null-terminated
-            ctx->focus->as_text_input.buffer[ctx->focus->as_text_input.cursor_pos] = '\0';
+            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\0';
         }
     }
 }
