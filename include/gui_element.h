@@ -19,6 +19,7 @@ typedef enum {
     AAF_GUI_EVENT_CLICK = 1 << 1,
     AAF_GUI_EVENT_HOVER = 1 << 2,
     AAF_GUI_EVENT_SUBMIT = 1 << 3,
+    AAF_GUI_EVENT_CHANGED = 1 << 4,
 } AafGuiElementEvent;
 
 typedef struct {

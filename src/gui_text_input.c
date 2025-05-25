@@ -43,7 +43,6 @@ Vector2 calculate_cursor_pos(AafGuiContext *ctx, AafGuiElement *self) {
     }
     size_t cursor_pos_index = self->as_text_input.cursor_pos;
     size_t line_start = 0;
-    size_t line_end = 0;
     size_t line_count = 0;
     for (size_t i = 0; i < cursor_pos_index; ++i) {
         if (i >= self->as_text_input.buffer_size || self->as_text_input.buffer[i] == '\0') {
@@ -54,13 +53,37 @@ Vector2 calculate_cursor_pos(AafGuiContext *ctx, AafGuiElement *self) {
             line_count++;
         }
     }
-    line_end = line_start;
+    size_t line_end = line_start;
     while (line_end < self->as_text_input.buffer_size && self->as_text_input.buffer[line_end] != '\n' && self->as_text_input.buffer[line_end] != '\0') {
         line_end++;
     }
-    cursor_pos.x = self->x + ctx->theme.textbox_padding + MeasureTextEx(*(Font *) ctx->font, self->as_text_input.buffer + line_start, ctx->font_size, 1).x;
+    char *line_text = self->as_text_input.buffer + line_start;
+    size_t line_length = line_end - line_start;
+    if (line_length == 0) {
+        line_length = 1; // Ensure at least one character for empty lines
+    }
+    // Calculate the cursor position based on the line text
+    Vector2 text_size = MeasureTextEx(*(Font *) ctx->font, line_text, ctx->font_size, 1);
+    text_size.x = fmaxf(text_size.x, ctx->theme.textbox_padding * 2); // Ensure minimum width
+    // Calculate the cursor position based on the line count and text size
+    cursor_pos.x = self->x + ctx->theme.textbox_padding + (text_size.x * ((float)(cursor_pos_index - line_start) / (float)line_length));
     cursor_pos.y = self->y + ctx->theme.textbox_padding + ((float)line_count * ((float)(ctx->font_size) + 2));
     return cursor_pos;
+}
+
+void draw_cursor(AafGuiContext *ctx, AafGuiElement *self) {
+    if (self == NULL || self->as_text_input.buffer == NULL) {
+        return;
+    }
+
+    Vector2 cursor_pos = calculate_cursor_pos(ctx, self);
+    Color cursor_color = (Color) {
+            (*(Color *) ctx->theme.text_color).r,
+            (*(Color *) ctx->theme.text_color).g,
+            (*(Color *) ctx->theme.text_color).b,
+            self->as_text_input.cursor_anim_step > 0.5f ? 255 : 0 // Blink effect
+    };
+    DrawLineEx(cursor_pos, (Vector2){cursor_pos.x, cursor_pos.y + 20}, 2.0f, cursor_color); // Draw cursor line
 }
 
 void aaf_draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
@@ -78,25 +101,42 @@ void aaf_draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
 
     float roundness = ctx->theme.corner_radius / fminf(self->w, self->h);
 
-    Vector2 cursor_pos = calculate_cursor_pos(ctx, self);
-
     DrawRectangleRounded(self_rect, roundness, 20, *(Color *) ctx->theme.textbox_background_color);
     if (self == ctx->focus) {
         DrawRectangleRoundedLinesEx(self_rect, roundness, 20, 2, *(Color *) ctx->theme.textbox_border_focus_color);
     } else {
         DrawRectangleRoundedLinesEx(self_rect, roundness, 20, 2, *(Color *) ctx->theme.textbox_border_color);
     }
+
     DrawTextEx(*(Font *) ctx->font, text, (Vector2) {self->x + ctx->theme.textbox_padding, self->y + ctx->theme.textbox_padding}, 20, 1, *(Color *) ctx->theme.text_color);
 
     if (self == ctx->focus) {
-        Color cursor_color = (Color) {
-                (*(Color *) ctx->theme.text_color).r,
-                (*(Color *) ctx->theme.text_color).g,
-                (*(Color *) ctx->theme.text_color).b,
-                self->as_text_input.cursor_anim_step > 0.5f ? 255 : 0 // Blink effect
-        };
-        DrawLineEx(cursor_pos, (Vector2){cursor_pos.x, cursor_pos.y + 20}, 2.0f, cursor_color); // Draw cursor line
+        draw_cursor(ctx, self); // Draw cursor only if this element is focused
     }
+}
+
+char *get_char_start(const char *buffer, size_t pos) {
+    if (buffer == NULL || pos == 0) {
+        return NULL;
+    }
+    // Find the start of the UTF-8 character at the given position
+    size_t i = pos - 1;
+    while (i > 0 && (buffer[i] & 0xc0) == 0x80) {
+        i--; // Move back until we find the start of the character
+    }
+    return (char *)(buffer + i);
+}
+
+size_t get_char_width(const char *buffer, size_t pos) {
+    if (buffer == NULL || pos == 0) {
+        return 0;
+    }
+    // Find the width of the UTF-8 character at the given position
+    size_t i = pos - 1;
+    while (i > 0 && (buffer[i] & 0xc0) == 0x80) {
+        i--; // Move back until we find the start of the character
+    }
+    return pos - i; // Return the length of the character
 }
 
 void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
@@ -116,14 +156,20 @@ void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
 
     if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
         // get the utf-8 character length of the last character
-        size_t cpos = self->as_text_input.cursor_pos;
-        for (size_t i = cpos - 1; 1; --i) {
-            if ((self->as_text_input.buffer[i] & 0xc0) != 0x80) {
-                // found the start of the last character
-                self->as_text_input.buffer[i] = '\0';
-                self->as_text_input.cursor_pos = i;
-                break;
+        if (self->as_text_input.cursor_pos > 0) {
+            char *char_start = get_char_start(self->as_text_input.buffer, self->as_text_input.cursor_pos);
+            if (char_start == NULL) {
+                return; // No character to remove
             }
+            size_t char_length = self->as_text_input.cursor_pos - (char_start - self->as_text_input.buffer);
+            // Remove the character at the cursor position
+            memmove(char_start, char_start + char_length, strlen(char_start + char_length) + 1);
+            self->as_text_input.cursor_pos -= char_length;
+            if (self->as_text_input.cursor_pos < 0) {
+                self->as_text_input.cursor_pos = 0; // Prevent negative cursor position
+            }
+            self->as_text_input.buffer_size = strlen(self->as_text_input.buffer) + 1; // Update buffer size
+            self->event |= AAF_GUI_EVENT_CHANGED; // Mark as changed
         }
     } else if (IsKeyPressed(KEY_ENTER) || IsKeyPressedRepeat(KEY_ENTER)) {
         // submit the text input
@@ -131,21 +177,41 @@ void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
             if (self->as_text_input.cursor_pos >= self->as_text_input.buffer_size - 1) {
                 // Reallocate buffer if needed
                 self->as_text_input.buffer = realloc(self->as_text_input.buffer, self->as_text_input.buffer_size + 128);
-                self->as_text_input.buffer_size += 128;
             }
-            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\n';
-            self->as_text_input.cursor_pos++;
-            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\0';
+            // Insert a newline character at the cursor position
+            memmove(self->as_text_input.buffer + self->as_text_input.cursor_pos + 1,
+                    self->as_text_input.buffer + self->as_text_input.cursor_pos,
+                    strlen(self->as_text_input.buffer) - self->as_text_input.cursor_pos);
+            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\n'; // Insert newline
+            self->as_text_input.cursor_pos += 1; // Move cursor forward
+            self->as_text_input.buffer_size = strlen(self->as_text_input.buffer) + 1; // Update buffer size
+            self->event |= AAF_GUI_EVENT_CHANGED; // Mark as changed
         }
+    } else if (IsKeyPressed(KEY_ESCAPE)) {
+        self->as_text_input.selection_start = 0;
+        self->as_text_input.selection_end = 0; // Clear selection
     } else if (IsKeyPressed(KEY_LEFT) || IsKeyPressedRepeat(KEY_LEFT)) {
         // move the cursor left
-        if (self->as_text_input.cursor_pos > 0) {
-            self->as_text_input.cursor_pos--;
+        char *char_start = get_char_start(self->as_text_input.buffer, self->as_text_input.cursor_pos);
+        if (char_start == NULL) {
+            return; // No character to move back to
+        }
+        size_t char_length = self->as_text_input.cursor_pos - (char_start - self->as_text_input.buffer);
+        if (char_length > 0) {
+            self->as_text_input.cursor_pos -= char_length; // Move cursor back by the character length
+        } else {
+            self->as_text_input.cursor_pos--; // Move cursor back by one byte
+        }
+        if (self->as_text_input.cursor_pos < 0) {
+            self->as_text_input.cursor_pos = 0; // Prevent negative cursor position
         }
     } else if (IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT)) {
         // move the cursor right
-        if (self->as_text_input.cursor_pos < strlen(self->as_text_input.buffer)) {
-            self->as_text_input.cursor_pos++;
+        size_t next_char_length = get_char_width(self->as_text_input.buffer, self->as_text_input.cursor_pos);
+        if (self->as_text_input.cursor_pos + next_char_length < self->as_text_input.buffer_size) {
+            self->as_text_input.cursor_pos += next_char_length; // Move cursor forward by the character length
+        } else {
+            self->as_text_input.cursor_pos = self->as_text_input.buffer_size - 1; // Prevent going out of bounds
         }
     } else {
         // add the character to the text input
@@ -169,15 +235,21 @@ void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
             if (len >= self->as_text_input.buffer_size) {
                 // Reallocate buffer if needed
                 self->as_text_input.buffer = realloc(self->as_text_input.buffer, len + 128);
-                self->as_text_input.buffer_size += 128;
             }
             // Insert the character at the cursor position
-            size_t cursor_pos = self->as_text_input.cursor_pos;
-            memmove(self->as_text_input.buffer + cursor_pos + strlen(utf8_char), self->as_text_input.buffer + cursor_pos, strlen(self->as_text_input.buffer) - cursor_pos + 1);
-            memcpy(self->as_text_input.buffer + cursor_pos, utf8_char, strlen(utf8_char));
-            self->as_text_input.cursor_pos += strlen(utf8_char);
-            // Ensure the buffer is null-terminated
-            self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\0';
+            if (self->as_text_input.cursor_pos >= self->as_text_input.buffer_size - 1) {
+                self->as_text_input.buffer[self->as_text_input.cursor_pos] = '\0'; // Null-terminate the string
+            }
+            memmove(self->as_text_input.buffer + self->as_text_input.cursor_pos + strlen(utf8_char),
+                    self->as_text_input.buffer + self->as_text_input.cursor_pos,
+                    strlen(self->as_text_input.buffer) - self->as_text_input.cursor_pos);
+            memcpy(self->as_text_input.buffer + self->as_text_input.cursor_pos, utf8_char, strlen(utf8_char));
+            self->as_text_input.cursor_pos += strlen(utf8_char); // Move cursor forward by the character length
+            if (self->as_text_input.cursor_pos >= self->as_text_input.buffer_size - 1) {
+                self->as_text_input.cursor_pos = self->as_text_input.buffer_size - 1; // Prevent going out of bounds
+            }
+            self->as_text_input.buffer_size = strlen(self->as_text_input.buffer) + 1; // Update buffer size
+            self->event |= AAF_GUI_EVENT_CHANGED; // Mark as changed
         }
     }
 }
