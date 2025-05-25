@@ -17,7 +17,7 @@ AafGuiElement *aaf_gui_button(AafGuiContext *ctx, const char *text, int x, int y
     AafGuiButton button = {text};
     AafGuiElement element = {GUI_BUTTON, .as_button = button, .w = wh.x + ctx->theme.button_padding * 2, .h = wh.y + ctx->theme.button_padding * 2};
 
-    _aaf_realloc_gui_elements_if_needed(ctx);
+    aaf_gui_realloc_elements_if_needed(ctx);
 
     AafGuiElement *new_element = &ctx->elements[ctx->element_count];
     *new_element = element;

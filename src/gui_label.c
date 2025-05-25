@@ -16,7 +16,7 @@ AafGuiElement *aaf_gui_label(AafGuiContext *ctx, const char *text, int x, int y)
     AafGuiLabel label = {text};
     AafGuiElement element = {GUI_LABEL, .as_label = label, .w = wh.x, .h = wh.y};
 
-    _aaf_realloc_gui_elements_if_needed(ctx);
+    aaf_gui_realloc_elements_if_needed(ctx);
 
     AafGuiElement *new_element = &ctx->elements[ctx->element_count];
     *new_element = element;

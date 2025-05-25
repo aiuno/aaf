@@ -32,14 +32,15 @@ typedef struct {
 typedef struct {
     AafGuiElement *elements;
     size_t element_count;
-    float font_size;
+    int font_size;
     void *font;
+    const char *font_path;
     AafGuiElement *focus;// TODO: Focus for text input etc. when implemented
     AafGuiTheme theme;
     AafGuiLayoutMode layout_mode;
 } AafGuiContext;
 
-void _aaf_realloc_gui_elements_if_needed(AafGuiContext *ctx);
+void aaf_gui_realloc_elements_if_needed(AafGuiContext *ctx);
 
 AafGuiElement *aaf_gui_label(AafGuiContext *ctx, const char *text, int x, int y);
 AafGuiElement *aaf_gui_button(AafGuiContext *ctx, const char *text, int x, int y);
@@ -48,6 +49,7 @@ AafGuiElement *aaf_gui_text_input(AafGuiContext *ctx, const char *text, bool mul
 AafGuiTheme aaf_gui_theme_default();
 AafGuiContext aaf_gui_context_create();
 void aaf_gui_set_font(AafGuiContext *ctx, const char *path, int size);
+void aaf_gui_reload_font(AafGuiContext *ctx);
 
 void aaf_draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self);
 void aaf_draw_gui_button(AafGuiContext *ctx, AafGuiElement *self);

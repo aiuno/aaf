@@ -19,6 +19,8 @@ void aaf_init(AafContext *ctx, int argc, char *argv[]) {
     SetExitKey(0);
     SetWindowPosition(100, 100);
 
+    ctx->monitor = GetCurrentMonitor();
+
     ctx->accumulator = 0.0;
     ctx->update_rate = 1.0 / 60.0; // 60 FPS update rate
 
@@ -123,9 +125,13 @@ void aaf_begin(AafContext *ctx) {
         return;
     }
 
+    if (ctx->monitor != GetCurrentMonitor()) {
+        ctx->monitor = GetCurrentMonitor();
+        aaf_gui_reload_font(&ctx->gui_context);
+    }
+
     if (IsWindowResized()) {
-        // Recalculate layout on window resize
-        aaf_calculate_layout(ctx);
+        aaf_calculate_layout(&ctx->gui_context);
     }
     ctx->accumulator += GetFrameTime();
 

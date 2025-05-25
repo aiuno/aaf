@@ -26,20 +26,45 @@ AafGuiTheme aaf_gui_theme_default() {
     return theme;
 }
 
+bool is_hidpi_screen() {
+    int monitor = GetCurrentMonitor();
+    return GetScreenWidth() != GetMonitorWidth(monitor) || GetScreenHeight() != GetMonitorHeight(monitor);
+}
+
 void aaf_gui_set_font(AafGuiContext *ctx, const char *path, int size) {
     if (ctx == NULL || path == NULL) {
         fprintf(stderr, "Error: AafContext or path is NULL\n");
         return;
     }
 
+    int real_size = size;
+    if (is_hidpi_screen()) {
+        real_size *= 4; // Font is pixelated on HiDPI screens, so scale it up
+    }
+
+    ctx->font_path = path;
+
     Font *font = malloc(sizeof(Font));
-    *font = LoadFontEx(path, size, NULL, 250);
+    *font = LoadFontEx(path, real_size, NULL, 250);
 
     ctx->font = font;
-    ctx->font_size = (float) size;
+    ctx->font_size = size;
 }
 
-void _aaf_realloc_gui_elements_if_needed(AafGuiContext *ctx) {
+void aaf_gui_reload_font(AafGuiContext *ctx) {
+    if (ctx == NULL || ctx->font_path == NULL) {
+        fprintf(stderr, "Error: AafContext or font path is NULL\n");
+        return;
+    }
+    if (ctx->font != NULL) {
+        UnloadFont(*(Font *) ctx->font);
+        free(ctx->font);
+    }
+
+    aaf_gui_set_font(ctx, ctx->font_path, ctx->font_size);
+}
+
+void aaf_gui_realloc_elements_if_needed(AafGuiContext *ctx) {
     if (ctx->element_count >= 100) {
         size_t new_size = ctx->element_count * 2;
         AafGuiElement *new_elements = realloc(ctx->elements, sizeof(AafGuiElement) * new_size);
@@ -55,7 +80,7 @@ AafGuiContext aaf_gui_context_create() {
     AafGuiContext ctx = {
             .elements = malloc(sizeof(AafGuiElement) * 100),
             .element_count = 0,
-            .font_size = 20.0f,
+            .font_size = 20,
             .font = NULL,
             .focus = NULL,
             .theme = aaf_gui_theme_default(),

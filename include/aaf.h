@@ -9,6 +9,8 @@ typedef struct {
     bool should_close;
     AafGuiContext gui_context;
 
+    int monitor;
+
     double accumulator;
     double update_rate;
 } AafContext;

@@ -25,7 +25,7 @@ AafGuiElement *aaf_gui_text_input(AafGuiContext *ctx, const char *text, bool mul
     strcpy(text_input.buffer, text);
     AafGuiElement element = {GUI_TEXT_INPUT, .as_text_input = text_input, .w = w + ctx->theme.textbox_padding * 2, .h = h + ctx->theme.textbox_padding * 2};
 
-    _aaf_realloc_gui_elements_if_needed(ctx);
+    aaf_gui_realloc_elements_if_needed(ctx);
 
     AafGuiElement *new_element = &ctx->elements[ctx->element_count];
     *new_element = element;
@@ -59,7 +59,7 @@ Vector2 calculate_cursor_pos(AafGuiContext *ctx, AafGuiElement *self) {
         line_end++;
     }
     cursor_pos.x = self->x + ctx->theme.textbox_padding + MeasureTextEx(*(Font *) ctx->font, self->as_text_input.buffer + line_start, ctx->font_size, 1).x;
-    cursor_pos.y = self->y + ctx->theme.textbox_padding + ((float)line_count * ((float)(*(Font *)ctx->font).baseSize + 2));
+    cursor_pos.y = self->y + ctx->theme.textbox_padding + ((float)line_count * ((float)(ctx->font_size) + 2));
     return cursor_pos;
 }
 
