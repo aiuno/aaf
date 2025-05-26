@@ -140,10 +140,6 @@ void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
         return;
     }
 
-    if (self != ctx->focus) {
-        return; // Only update if this element is focused
-    }
-
     // Update cursor animation step for blinking effect
     self->as_text_input.cursor_anim_step += GetFrameTime();
     if (self->as_text_input.cursor_anim_step >= 1.0f) {
