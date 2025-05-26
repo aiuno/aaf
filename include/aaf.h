@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "gui.h"
+#include "gui/gui.h"
 
 typedef struct {
     bool should_close;

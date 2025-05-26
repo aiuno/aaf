@@ -2,7 +2,7 @@
 // Created by Robert on 24/05/2025.
 //
 
-#include "gui.h"
+#include "gui/gui.h"
 
 #include <math.h>
 #include <raylib.h>
