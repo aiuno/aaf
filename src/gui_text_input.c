@@ -163,6 +163,8 @@ void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
                 memmove(self->as_text_input.buffer + self->as_text_input.cursor_pos,
                         self->as_text_input.buffer + self->as_text_input.cursor_pos + char_length,
                         strlen(self->as_text_input.buffer) - self->as_text_input.cursor_pos - char_length + 1); // +1 for null terminator
+                self->as_text_input.buffer_size = strlen(self->as_text_input.buffer) + 1; // Update buffer size
+                self->as_text_input.buffer[self->as_text_input.buffer_size] = '\0'; // Ensure null termination
                 self->event |= AAF_GUI_EVENT_CHANGED; // Mark as changed
             }
         }
