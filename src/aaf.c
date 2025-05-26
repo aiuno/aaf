@@ -77,10 +77,6 @@ void update_gui_elements(AafGuiContext *ctx) {
         } else if (element->type == GUI_TEXT_INPUT) {
             // recalculate the as_label rectangle
             // and check for mouse collision
-            Vector2 text_size = MeasureTextEx(*(Font *) ctx->font, element->as_label.text, ctx->font_size, 1);
-            element->w = text_size.x + ctx->theme.textbox_padding * 2;
-            element->h = text_size.y + ctx->theme.textbox_padding * 2;
-
             if (CheckCollisionPointRec(mouse_pos, (Rectangle) {element->x, element->y, element->w, element->h})) {
                 element->event |= AAF_GUI_EVENT_HOVER;
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {

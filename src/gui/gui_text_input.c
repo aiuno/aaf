@@ -2,12 +2,13 @@
 // Created by Robert on 24/05/2025.
 //
 
+// TODO: Fix overflow when text input is too long
+
 #include "gui/gui.h"
 
 #include <math.h>
 #include <raylib.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
