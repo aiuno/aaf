@@ -27,7 +27,7 @@ AafGuiElement *aaf_gui_label(AafGuiContext *ctx, const char *text, int x, int y)
     return new_element;
 }
 
-void aaf_draw_gui_label(AafGuiContext *ctx, AafGuiElement *self) {
+void aaf_gui_draw_label(AafGuiContext *ctx, AafGuiElement *self) {
     if (self == NULL) {
         return;
     }

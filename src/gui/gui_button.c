@@ -28,7 +28,7 @@ AafGuiElement *aaf_gui_button(AafGuiContext *ctx, const char *text, int x, int y
     return new_element;
 }
 
-void aaf_draw_gui_button(AafGuiContext *ctx, AafGuiElement *self) {
+void aaf_gui_draw_button(AafGuiContext *ctx, AafGuiElement *self) {
     if (self == NULL) {
         return;
     }

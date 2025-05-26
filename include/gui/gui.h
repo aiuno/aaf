@@ -51,11 +51,11 @@ AafGuiContext aaf_gui_context_create();
 void aaf_gui_set_font(AafGuiContext *ctx, const char *path, int size);
 void aaf_gui_reload_font(AafGuiContext *ctx);
 
-void aaf_draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self);
-void aaf_draw_gui_button(AafGuiContext *ctx, AafGuiElement *self);
-void aaf_draw_gui_label(AafGuiContext *ctx, AafGuiElement *self);
+void aaf_gui_draw_text_input(AafGuiContext *ctx, AafGuiElement *self);
+void aaf_gui_draw_button(AafGuiContext *ctx, AafGuiElement *self);
+void aaf_gui_draw_label(AafGuiContext *ctx, AafGuiElement *self);
 
-void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self);
+void aaf_gui_update_text_input(AafGuiContext *ctx, AafGuiElement *self);
 
 void aaf_calculate_layout(AafGuiContext *ctx);
 

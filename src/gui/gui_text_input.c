@@ -82,7 +82,7 @@ void draw_cursor(AafGuiContext *ctx, AafGuiElement *self) {
     DrawLineEx(cursor_pos, (Vector2){cursor_pos.x, cursor_pos.y + 20}, 2.0f, cursor_color); // Draw cursor line
 }
 
-void aaf_draw_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
+void aaf_gui_draw_text_input(AafGuiContext *ctx, AafGuiElement *self) {
     if (self == NULL) {
         return;
     }
@@ -135,7 +135,7 @@ size_t get_char_width_forward(const char *buffer, size_t pos) {
     return i - pos; // Return the length of the character
 }
 
-void aaf_update_gui_text_input(AafGuiContext *ctx, AafGuiElement *self) {
+void aaf_gui_update_text_input(AafGuiContext *ctx, AafGuiElement *self) {
     if (self == NULL || self->type != GUI_TEXT_INPUT) {
         return;
     }

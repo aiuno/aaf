@@ -43,11 +43,11 @@ void draw_gui_elements(AafContext *ctx) {
     for (size_t i = 0; i < ctx->gui_context.element_count; ++i) {
         AafGuiElement *element = &ctx->gui_context.elements[i];
         if (element->type == GUI_LABEL) {
-            aaf_draw_gui_label(&ctx->gui_context, element);
+            aaf_gui_draw_label(&ctx->gui_context, element);
         } else if (element->type == GUI_BUTTON) {
-            aaf_draw_gui_button(&ctx->gui_context, element);
+            aaf_gui_draw_button(&ctx->gui_context, element);
         } else if (element->type == GUI_TEXT_INPUT) {
-            aaf_draw_gui_text_input(&ctx->gui_context, element);
+            aaf_gui_draw_text_input(&ctx->gui_context, element);
         }
     }
 }
@@ -100,7 +100,7 @@ void update_gui_elements(AafGuiContext *ctx) {
             return;// TODO: Handle focus for other types, where applicable
         }
 
-        aaf_update_gui_text_input(ctx, ctx->focus);
+        aaf_gui_update_text_input(ctx, ctx->focus);
     }
 }
 
